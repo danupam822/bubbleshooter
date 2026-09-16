@@ -1,8 +1,10 @@
 import 'package:flame/game.dart';
 import 'package:flutter/material.dart';
 import 'package:provider/provider.dart';
+import '../services/notification_service.dart';
 import '../viewmodels/game_viewmodel.dart';
 import '../game/bubble_shooter_game.dart';
+import '../login/login_view_model.dart';
 
 class GameScreen extends StatefulWidget {
   const GameScreen({super.key});
@@ -11,7 +13,8 @@ class GameScreen extends StatefulWidget {
   State<GameScreen> createState() => _GameScreenState();
 }
 
-class _GameScreenState extends State<GameScreen> with TickerProviderStateMixin {
+class _GameScreenState extends State<GameScreen>
+    with TickerProviderStateMixin, WidgetsBindingObserver {
   late BubbleShooterGame _game;
   late AnimationController _pulseController;
   late Animation<double> _pulseAnim;
@@ -41,11 +44,24 @@ class _GameScreenState extends State<GameScreen> with TickerProviderStateMixin {
     _pulseAnim = Tween<double>(begin: 0.9, end: 1.0).animate(
       CurvedAnimation(parent: _pulseController, curve: Curves.easeInOut),
     );
+
+    // ── Handle cold-start (terminated) notification tap ─────────────
+    // Check if notification launched the app after the first frame
+    WidgetsBinding.instance.addObserver(this);
+    WidgetsBinding.instance.addPostFrameCallback((_) async {
+      final payload = await NotificationService.getInitialPayload();
+      if (payload != null) {
+        debugPrint('[GameScreen] Launched by notification: $payload');
+        // Already on GameScreen — nothing extra to navigate; just log it.
+        // If you add more screens later, navigate here based on payload.
+      }
+    });
     print('[GameScreen] initState() finished');
   }
 
   @override
   void dispose() {
+    WidgetsBinding.instance.removeObserver(this);
     _pulseController.dispose();
     super.dispose();
   }
@@ -135,6 +151,40 @@ class _TopHud extends StatelessWidget {
       child: Column(
         mainAxisSize: MainAxisSize.min,
         children: [
+          Consumer<LoginViewModel>(
+            builder: (context, loginViewModel, child) {
+              final name = loginViewModel.userName ?? "Player";
+              return GestureDetector(
+                onTap: () => Navigator.pushNamed(context, '/profile'),
+                child: Padding(
+                  padding: const EdgeInsets.only(bottom: 8.0),
+                  child: Row(
+                    children: [
+                      CircleAvatar(
+                        radius: 12,
+                        backgroundColor: Colors.white10,
+                        backgroundImage: loginViewModel.userPhotoUrl != null
+                            ? NetworkImage(loginViewModel.userPhotoUrl!)
+                            : null,
+                        child: loginViewModel.userPhotoUrl == null
+                            ? const Icon(Icons.person, size: 12, color: Colors.white)
+                            : null,
+                      ),
+                      const SizedBox(width: 8),
+                      Text(
+                        'Hyy, $name! 👋',
+                        style: const TextStyle(
+                          color: Colors.white70,
+                          fontSize: 14,
+                          fontWeight: FontWeight.w500,
+                        ),
+                      ),
+                    ],
+                  ),
+                ),
+              );
+            },
+          ),
           Row(
             children: [
               _GlassChip(label: 'LVL', value: '${viewModel.level}'),
@@ -157,6 +207,12 @@ class _TopHud extends StatelessWidget {
               _CircleButton(
                 icon: Icons.refresh,
                 onTap: onReset,
+                color: Colors.white70,
+              ),
+              const SizedBox(width: 8),
+              _CircleButton(
+                icon: Icons.settings,
+                onTap: () => Navigator.pushNamed(context, '/settings'),
                 color: Colors.white70,
               ),
             ],

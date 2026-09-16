@@ -5,6 +5,7 @@ class LocalStorageService {
   static const String _keyScore = 'current_score';
   static const String _keySuperPowerCount = 'super_power_count';
   static const String _keySoundEnabled = 'sound_enabled';
+  static const String _keyIsLoggedIn = 'is_logged_in';
 
   static Future<void> saveGameState(int level, int score, int superPowerCount, bool soundEnabled) async {
     final prefs = await SharedPreferences.getInstance();
@@ -12,6 +13,16 @@ class LocalStorageService {
     await prefs.setInt(_keyScore, score);
     await prefs.setInt(_keySuperPowerCount, superPowerCount);
     await prefs.setBool(_keySoundEnabled, soundEnabled);
+  }
+
+  static Future<void> setLoggedIn(bool isLoggedIn) async {
+    final prefs = await SharedPreferences.getInstance();
+    await prefs.setBool(_keyIsLoggedIn, isLoggedIn);
+  }
+
+  static Future<bool> isLoggedIn() async {
+    final prefs = await SharedPreferences.getInstance();
+    return prefs.getBool(_keyIsLoggedIn) ?? false;
   }
 
   static Future<Map<String, dynamic>> loadGameState() async {

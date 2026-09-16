@@ -10,6 +10,7 @@ import 'package:audioplayers/audioplayers.dart';
 import 'package:flutter/material.dart';
 import '../viewmodels/game_viewmodel.dart';
 import '../services/ad_service.dart';
+import '../services/notification_service.dart';
 import 'game_constants.dart';
 import 'components/bubble.dart';
 import 'components/shooter.dart';
@@ -604,6 +605,8 @@ class BubbleShooterGame extends FlameGame
   bool _hasLevelStarted = false;
   bool _isAiming = false;
   Vector2 _lastInputPos = Vector2.zero();
+  // Tracks the last score milestone that fired a notification (every 500 pts)
+  int _lastNotifiedMilestone = 0;
 
   /// Called by the Flutter HUD — loads lion into shooter (decrements count).
   void activateStoredSuperPower() {
@@ -703,6 +706,11 @@ class BubbleShooterGame extends FlameGame
     '🦩', '🐔', '🦆', '🦢', '🐝', '🦋', '🐞', '🐌', '🐿️', '🦔',
     '🐇', '🐿️', '🦘', '🦥', '🦦', '🦨', '🦡', '🐺', '🐻', '🐨',
     '🐮', '🐷', '🐭', '🐹', '🐰', '🐻‍❄️', '🐐', '🐑', '🐴', '🫏',
+    '🦇', '🐗', '🦌', '🐫', '🐪', '🦙', '🐂', '🐃', '🐄', '🐎',
+    '🦚', '🐓', '🐦', '🐤', '🐣', '🐥', '🦃', '🕊️', '🐩', '🐕',
+    '🐕‍🦺', '🐈', '🐈‍⬛', '🐅', '🐆', '🦍', '🦧', '🦂', '🕷️', '🦗',
+    '🪳', '🪰', '🪱', '🦟', '🐛', '🐜', '🦠', '🐚', '🐡', '🦞',
+    '🦐', '🐟', '🦭', '🦬', '🐁', '🐀', '🦫', '🦤', '🐦‍⬛', '🐦‍🔥',
   ];
 
   late _StarfieldComponent _starfield;
@@ -1212,6 +1220,8 @@ class BubbleShooterGame extends FlameGame
         }
         _removeFloatingBubbles();
         _checkLevelProgress();
+        // ── Score milestone notification (every 500 pts) ────────────
+        _checkScoreMilestone();
       },
     ));
   }
@@ -1259,13 +1269,13 @@ class BubbleShooterGame extends FlameGame
   void _shiftGridDown() {
     if (_isLevelChanging || _isGameOver) return;
 
-    // If any bubble has already reached 75% of screen height, stop shifting.
+    // If any bubble has already reached 50% of screen height, stop shifting.
     // The grid stays frozen where it is — player keeps playing.
     for (int r = grid.length - 1; r >= 0; r--) {
       for (int c = 0; c < grid[r].length; c++) {
         if (grid[r][c] != null) {
           final pos = getPositionForGrid(r, c);
-          if (pos.y > size.y * 0.75) {
+          if (pos.y > size.y * 0.50) {
             return; // Freeze — no more shifting, no game over
           }
         }
@@ -1444,6 +1454,17 @@ class BubbleShooterGame extends FlameGame
     }
     return false;
   }
+  // ── Score milestone notification — fires every 500 pts ────────────────────
+  void _checkScoreMilestone() {
+    const int step = 500;
+    final score = viewModel.score;
+    if (score < step) return;
+    final milestone = (score ~/ step) * step;
+    if (milestone > _lastNotifiedMilestone) {
+      _lastNotifiedMilestone = milestone;
+      unawaited(NotificationService.notifyScoreMilestone(milestone));
+    }
+  }
 
   void _checkLevelProgress() {
     if (!_hasLevelStarted || _isLevelChanging || _isGameOver) return;
@@ -1474,12 +1495,15 @@ class BubbleShooterGame extends FlameGame
       onLevelComplete?.call(viewModel.level, bonus);
       playExplosionSound(); // A celebratory sound
 
-      // 4. Show interstitial ad if available
+      // 4. Foreground / background notification for level completion
+      unawaited(NotificationService.notifyLevelComplete(viewModel.level, bonus));
+
+      // 5. Show interstitial ad if available
       if (buildContext != null) {
         AdService.showInterstitialAdWithFallback(buildContext!);
       }
 
-      // 5. Advance level after overlay duration
+      // 6. Advance level after overlay duration
       Future.delayed(Duration(milliseconds: isGridEmpty ? 2800 : 3200), () {
         viewModel.nextLevel();
         _startLevel();
@@ -1560,10 +1584,12 @@ class BubbleShooterGame extends FlameGame
   @override
   void onDragUpdate(DragUpdateEvent event) {
     if (!_componentsLoaded || !_initialized || _isLevelChanging || !_isAiming) return;
-    // canvasEndPosition = absolute finger position in game-canvas coordinates.
-    // This matches the coordinate space of DragStartEvent.localPosition and
-    // all TapEvent.localPosition values, so there is zero drift.
-    _lastInputPos = event.canvasEndPosition;
+    // canvasEndPosition is the finger position in game-canvas coordinates —
+    // correct coordinate space for _updateDirection.
+    final newPos = event.canvasEndPosition;
+    // Skip micro-jitter — only update when finger has moved > 1 logical pixel
+    if ((newPos - _lastInputPos).length2 < 1.0) return;
+    _lastInputPos = newPos;
     _updateDirection(_lastInputPos);
   }
 

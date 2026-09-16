@@ -126,8 +126,9 @@ class GameViewModel extends ChangeNotifier {
   // Difficulty scaling: more pops required per level
   int get levelTarget => 200 + (_level * 75); 
 
-  // Starting rows: increase as level goes up
-  int getRowsCount() => 6 + (_level ~/ 2).clamp(0, 8);
+  // Starting rows: begin at 4, grow with level, hard-capped at 7 rows
+  // so the grid never exceeds ~50 % of screen height on typical phones.
+  int getRowsCount() => 4 + (_level ~/ 2).clamp(0, 3);
 
   // Colors: introduce more colors sooner
   int getColorCount() => math.min(bubbleColors.length, 4 + (_level ~/ 2));

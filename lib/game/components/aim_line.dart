@@ -22,7 +22,7 @@ class AimLine extends Component with HasGameReference<BubbleShooterGame> {
 
   @override
   void render(Canvas canvas) {
-    final s = game.shooter;
+   final s = game.shooter;
     if (s == null || !s.canShoot) return;
     
     final nextColor = s.nextColor;

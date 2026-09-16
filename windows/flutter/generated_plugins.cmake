@@ -5,6 +5,9 @@
 list(APPEND FLUTTER_PLUGIN_LIST
   audioplayers_windows
   connectivity_plus
+  firebase_auth
+  firebase_core
+  rive_common
 )
 
 list(APPEND FLUTTER_FFI_PLUGIN_LIST
