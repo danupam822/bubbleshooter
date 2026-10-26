@@ -64,6 +64,7 @@ class LoginViewModel extends ChangeNotifier {
       
       if (userCredential.user != null) {
         final user = userCredential.user!;
+
         print('LoginViewModel: Firebase Login Success!');
         print('LoginViewModel: Firebase User Email: ${user.email}');
         print('LoginViewModel: Firebase UID: ${user.uid}');

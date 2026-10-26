@@ -17,7 +17,6 @@ class AdService {
       print('AdService: No network, skipping load.');
       return;
     }
-
     print('AdService: Loading Interstitial Ad...');
     InterstitialAd.load(
       adUnitId: _adUnitId,

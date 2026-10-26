@@ -215,9 +215,7 @@ class NotificationService {
     }
   }
 
-  // ─────────────────────────────────────────────────────────────────────────
-  //  PUBLIC API
-  // ─────────────────────────────────────────────────────────────────────────
+
 
   /// Show an immediate notification (foreground / background).
   static Future<void> showNow({
