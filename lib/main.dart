@@ -69,13 +69,13 @@ void main() {
       ),
     );
 
-    // Initialize ads after a small delay to prioritize UI
-    Future.delayed(const Duration(seconds: 1), () {
-      MobileAds.instance.initialize().then((_) {
-        print('[Main] Ads initialized');
-        AdService.loadInterstitialAd();
-      });
-    });
+    // Initialize ads after a small delay to prioritize UI (Disabled for now)
+    // Future.delayed(const Duration(seconds: 1), () {
+    //   MobileAds.instance.initialize().then((_) {
+    //     print('[Main] Ads initialized');
+    //     AdService.loadInterstitialAd();
+    //   });
+    // });
   }, (error, stack) {
     print('[Main] Error: $error');
     print(stack);

@@ -1,5 +1,6 @@
 import 'dart:async';
 import 'package:connectivity_plus/connectivity_plus.dart';
+import 'package:flutter/foundation.dart';
 import 'package:flutter/material.dart';
 import 'package:flutter/services.dart';
 import 'package:google_mobile_ads/google_mobile_ads.dart';
@@ -8,15 +9,28 @@ class AdService {
   static InterstitialAd? _interstitialAd;
   static bool _isAdLoaded = false;
 
-  // Demo Interstitial Ad ID for Android
+  /// Set to `false` when publishing to Play Store without active Ads/Sponsors.
+  /// Set to `true` when your AdMob account / Sponsor campaign is ready.
+  static bool enableAds = false;
+
+  /// Set to `true` only during local testing if you want to test mock ad dialogs.
+  static bool forceMock = false;
+
+  // Demo Interstitial Ad ID for Android (Replace with your real AdMob Interstitial Unit ID in production)
   static const String _adUnitId = 'ca-app-pub-3940256099942544/1033173712';
 
   static Future<void> loadInterstitialAd() async {
+    if (!enableAds) {
+      print('AdService: Ads are disabled. Skipping load.');
+      return;
+    }
+
     final List<ConnectivityResult> connectivityResult = await Connectivity().checkConnectivity();
     if (connectivityResult.isEmpty || connectivityResult.contains(ConnectivityResult.none)) {
       print('AdService: No network, skipping load.');
       return;
     }
+
     print('AdService: Loading Interstitial Ad...');
     InterstitialAd.load(
       adUnitId: _adUnitId,
@@ -57,9 +71,10 @@ class AdService {
   }
 
   static Future<void> showInterstitialAdWithFallback(BuildContext context) async {
-    // For testing/debugging, we can force the Mock Ad to ensure the "X" button is seen.
-    // Set forceMock to false if you want to prefer real Google Ads.
-    const bool forceMock = true; 
+    if (!enableAds) {
+      print('AdService: Ads are currently disabled.');
+      return;
+    }
 
     final List<ConnectivityResult> connectivityResult = await Connectivity().checkConnectivity();
     if (connectivityResult.isEmpty || connectivityResult.contains(ConnectivityResult.none)) {
@@ -70,9 +85,13 @@ class AdService {
     if (!forceMock && _isAdLoaded && _interstitialAd != null) {
       print('AdService: Showing Google Interstitial Ad.');
       await _interstitialAd!.show();
+    } else if (forceMock && kDebugMode) {
+      print('AdService: Showing Mock Ad (Debug mode).');
+      if (context.mounted) {
+        _showMockAd(context);
+      }
     } else {
-      print('AdService: Showing Mock Ad (Timer based).');
-      _showMockAd(context);
+      print('AdService: Ad not ready or disabled for fallback.');
       if (!forceMock) loadInterstitialAd();
     }
   }
@@ -141,12 +160,12 @@ class _MockAdOverlayState extends State<_MockAdOverlay> {
                 colors: [Colors.blueGrey.shade900, Colors.black],
               ),
             ),
-            child: Column(
+            child: const Column(
               mainAxisAlignment: MainAxisAlignment.center,
               children: [
-                const Icon(Icons.featured_video_rounded, size: 100, color: Colors.blueAccent),
-                const SizedBox(height: 30),
-                const Text(
+                Icon(Icons.featured_video_rounded, size: 100, color: Colors.blueAccent),
+                SizedBox(height: 30),
+                Text(
                   'SPONSORED AD',
                   style: TextStyle(
                     color: Colors.white, 
@@ -155,7 +174,7 @@ class _MockAdOverlayState extends State<_MockAdOverlay> {
                     letterSpacing: 2,
                   ),
                 ),
-                const Padding(
+                Padding(
                   padding: EdgeInsets.all(20.0),
                   child: Text(
                     'This is a demo advertisement.\nYour game will resume shortly.',
@@ -163,8 +182,8 @@ class _MockAdOverlayState extends State<_MockAdOverlay> {
                     style: TextStyle(color: Colors.white70, fontSize: 16),
                   ),
                 ),
-                const SizedBox(height: 40),
-                const CircularProgressIndicator(color: Colors.blueAccent),
+                SizedBox(height: 40),
+                CircularProgressIndicator(color: Colors.blueAccent),
               ],
             ),
           ),
@@ -185,7 +204,7 @@ class _MockAdOverlayState extends State<_MockAdOverlay> {
                         color: Colors.redAccent,
                         shape: BoxShape.circle,
                         boxShadow: [
-                          BoxShadow(color: Colors.black.withOpacity(0.5), blurRadius: 10)
+                          BoxShadow(color: Colors.black.withAlpha(128), blurRadius: 10)
                         ],
                         border: Border.all(color: Colors.white, width: 2),
                       ),

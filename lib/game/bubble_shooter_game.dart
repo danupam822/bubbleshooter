@@ -1498,10 +1498,10 @@ class BubbleShooterGame extends FlameGame
       // 4. Foreground / background notification for level completion
       unawaited(NotificationService.notifyLevelComplete(viewModel.level, bonus));
 
-      // 5. Show interstitial ad if available
-      if (buildContext != null) {
-        AdService.showInterstitialAdWithFallback(buildContext!);
-      }
+      // 5. Show interstitial ad if available (Disabled for now)
+      // if (buildContext != null) {
+      //   AdService.showInterstitialAdWithFallback(buildContext!);
+      // }
 
       // 6. Advance level after overlay duration
       Future.delayed(Duration(milliseconds: isGridEmpty ? 2800 : 3200), () {
